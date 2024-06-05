@@ -104,6 +104,7 @@ func (e *Editor) sendMessage(message *dto.ApiMessageTransport) error {
 
 func NewEditor(pool *EditorsPool, conn *websocket.Conn) *Editor {
 	return &Editor{
+		uuid: uuid.Must(uuid.NewRandom()),
 		pool: pool,
 		conn: conn,
 	}

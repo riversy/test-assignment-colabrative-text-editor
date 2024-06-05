@@ -10,6 +10,7 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
     const [isLoading, setIsLoading] = useState<Boolean>(true);
 
     const transitionCallback = useCallback<TransitionCallback>((transition: ApiTransitionEvent): void => {
+        setIsLoading(false);
         if (transition.start == transition.end) {
             insertTextAtPosition(transition.start, transition.text);
         } else {
@@ -80,7 +81,10 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
         // Log the selection parameters
         const selectionStart = textarea.selectionStart;
         const selectionEnd = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(selectionStart, selectionEnd);
+
+        const apiConnection = ApiConnectionProvider();
+        apiConnection.SendTransition({start: selectionStart, end: selectionEnd, text: e.key});
+
     };
 
     const changeHandler = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -95,7 +99,7 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
             onKeyDown={keyDownHandler}
             onChange={changeHandler}
             disabled={isLoading}
-            placeholder="Loading..."
+            placeholder={isLoading ? "Loading...": ""}
         ></textarea>
     );
 }

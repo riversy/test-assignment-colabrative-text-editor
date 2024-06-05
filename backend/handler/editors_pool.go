@@ -56,6 +56,8 @@ func (p *EditorsPool) ServeWs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *EditorsPool) Handle() {
+	go p.textContainer.HandleInbound()
+
 	for {
 		select {
 		case _ = <-p.Handshake:
@@ -69,6 +71,7 @@ func (p *EditorsPool) Handle() {
 			p.broadcastEditors()
 		case transport := <-p.BroadcastTransition:
 			p.broadcastTransition(transport)
+			p.updateTextContainer(transport)
 		}
 	}
 }
@@ -122,6 +125,14 @@ func (p *EditorsPool) sendInitialTransition(editor *Editor) {
 	err := editor.sendMessage(NewTransitionMessage(&transition))
 	if err != nil {
 		slog.Error("send initial transition to editor error:", err, "name: ", editor.name)
+	}
+}
+
+func (p *EditorsPool) updateTextContainer(transport *TransitionTransport) {
+	p.textContainer.Inbound <- text.Transition{
+		Start: transport.transition.Start,
+		End:   transport.transition.End,
+		Text:  transport.transition.Text,
 	}
 }
 
