@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "pkg/dto";
+
+message ApiParticipant {
+  string uuid = 1;
+  string name = 2;
+}
+
+message ApiMessageTransport {
+  message ApiHandshakeMessage {
+    string name = 1;
+  }
+
+  message ApiTextTransitionMessage {
+    int32 start = 1;
+    int32 end = 2;
+    string text = 3;
+  }
+
+  message ApiParticipantsMessage {
+    repeated ApiParticipant participants = 1;
+  }
+
+  oneof transport {
+    ApiHandshakeMessage handshake = 1;
+    ApiTextTransitionMessage transition = 2;
+    ApiParticipantsMessage participants = 3;
+  }
+}

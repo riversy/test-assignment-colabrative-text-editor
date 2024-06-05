@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"colabrative-text-editor/backend/pkg/dto"
+	"colabrative-text-editor/backend/pkg/text"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 	"log/slog"
 	"sync"
 )
@@ -30,6 +33,29 @@ func (e *Editor) Handle() {
 				slog.Error("read from WebSocket error:", err)
 			}
 			break
+		}
+
+		var transport dto.ApiMessageTransport
+
+		err = proto.Unmarshal(message, &transport)
+		if err != nil {
+			slog.Error("message of wrong format arrived", err)
+		}
+
+		switch transport.GetTransport().(type) {
+		case *dto.ApiMessageTransport_Handshake:
+			slog.Info("handshake received", "name", transport.GetHandshake().Name)
+			e.SetName(transport.GetHandshake().Name)
+			e.pool.AddToPool <- e
+		case *dto.ApiMessageTransport_Transition:
+			textTransition := text.NewTransition(
+				int(transport.GetTransition().GetStart()),
+				int(transport.GetTransition().GetEnd()),
+				transport.GetTransition().GetText(),
+			)
+			e.pool.BroadcastTransition <- NewTransitionTransport(e, &textTransition)
+		default:
+			slog.Error("message with unsupported transport type arrived")
 		}
 
 		slog.Info(string(message))

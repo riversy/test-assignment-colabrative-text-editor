@@ -1,4 +1,7 @@
 import {WS_URI} from "./config.provider.ts";
+import {proto} from "../dto/messages";
+import ApiHandshakeMessage = proto.ApiMessageTransport.ApiHandshakeMessage;
+import ApiMessageTransport = proto.ApiMessageTransport;
 
 export type ApiHandshakeRequest = {
     participantName: string;
@@ -40,14 +43,21 @@ export class ApiConnection {
         this.wsConnection.onopen = () => {
             console.log('Connected to server');
 
-            // Initial message or authentication, if needed
-            this.wsConnection.send(JSON.stringify({message: 'Hello'}));
+            const handshakeMessage = ApiHandshakeMessage.create({
+                name: this.participantName
+            });
+
+            const transportMessage = ApiMessageTransport.create({
+                handshake: handshakeMessage
+            });
+
+            this.wsConnection.send(ApiMessageTransport.encode(transportMessage).finish());
         };
 
         this.wsConnection.onmessage = (event) => {
             const message = JSON.parse(event.data);
             if (message.start !== undefined && message.end !== undefined && message.text !== undefined) {
-                this?.transitionCallback(message as ApiTransitionEvent);
+                this.transitionCallback(message as ApiTransitionEvent);
             } else {
                 console.error('Invalid message format', message);
             }
