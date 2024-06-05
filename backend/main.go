@@ -1,20 +1,13 @@
 package main
 
 import (
-	"log"
-
 	"github.com/joho/godotenv"
+	"os"
 )
 
 func main() {
-	if err := initEverything(); err != nil {
-		log.Fatal(err)
-	}
+	_ = godotenv.Load(".env")
 
-}
+	port := os.Getenv("HTTP_LISTEN_ADDR")
 
-func initEverything() error {
-	_ = godotenv.Load("../.env")
-
-	return nil
 }
