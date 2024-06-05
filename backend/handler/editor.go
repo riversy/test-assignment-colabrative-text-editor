@@ -48,18 +48,16 @@ func (e *Editor) Handle() {
 			e.SetName(transport.GetHandshake().Name)
 			e.pool.AddToPool <- e
 		case *dto.ApiMessageTransport_Transition:
+			slog.Info("text transition received from", "name", e.GetName())
 			textTransition := text.NewTransition(
-				int(transport.GetTransition().GetStart()),
-				int(transport.GetTransition().GetEnd()),
+				transport.GetTransition().GetStart(),
+				transport.GetTransition().GetEnd(),
 				transport.GetTransition().GetText(),
 			)
 			e.pool.BroadcastTransition <- NewTransitionTransport(e, &textTransition)
 		default:
 			slog.Error("message with unsupported transport type arrived")
 		}
-
-		slog.Info(string(message))
-
 	}
 }
 
@@ -90,8 +88,18 @@ func (e *Editor) Close() {
 	}
 }
 
-func (e *Editor) sendMessage(i any) {
+func (e *Editor) sendMessage(message *dto.ApiMessageTransport) error {
+	data, err := proto.Marshal(message)
+	if err != nil {
+		return err
+	}
 
+	err = e.conn.WriteMessage(websocket.BinaryMessage, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewEditor(pool *EditorsPool, conn *websocket.Conn) *Editor {

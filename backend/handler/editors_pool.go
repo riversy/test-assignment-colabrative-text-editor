@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"colabrative-text-editor/backend/pkg/dto"
 	"colabrative-text-editor/backend/pkg/text"
 	"github.com/google/uuid"
 	"log/slog"
@@ -60,6 +61,7 @@ func (p *EditorsPool) Handle() {
 		case _ = <-p.Handshake:
 			break
 		case editor := <-p.AddToPool:
+			p.sendInitialTransition(editor)
 			p.addEditor(editor)
 			p.broadcastEditors()
 		case editor := <-p.RemoveFromPool:
@@ -89,14 +91,13 @@ func (p *EditorsPool) deleteEditor(editor *Editor) {
 
 func (p *EditorsPool) broadcastEditors() {
 	for _, editor := range p.editors {
-		editor.sendMessage(
+		err := editor.sendMessage(
 			NewParticipantsMessage(p.editors),
 		)
+		if err != nil {
+			slog.Error("broadcast participants to editor error:", err, "name: ", editor.name)
+		}
 	}
-}
-
-func NewParticipantsMessage(editors map[uuid.UUID]*Editor) any {
-	return nil
 }
 
 func (p *EditorsPool) broadcastTransition(transport *TransitionTransport) {
@@ -105,12 +106,59 @@ func (p *EditorsPool) broadcastTransition(transport *TransitionTransport) {
 			continue
 		}
 
-		editor.sendMessage(
+		err := editor.sendMessage(
 			NewTransitionMessage(transport.transition),
 		)
+		if err != nil {
+			slog.Error("broadcast transition to editor error:", err, "name: ", editor.name)
+		}
 	}
 }
 
-func NewTransitionMessage(transition *text.Transition) any {
-	return nil
+func (p *EditorsPool) sendInitialTransition(editor *Editor) {
+	initialText := p.textContainer.GetText()
+	transition := text.NewTransition(0, 0, initialText)
+
+	err := editor.sendMessage(NewTransitionMessage(&transition))
+	if err != nil {
+		slog.Error("send initial transition to editor error:", err, "name: ", editor.name)
+	}
+}
+
+func NewParticipantsMessage(editors map[uuid.UUID]*Editor) *dto.ApiMessageTransport {
+	var participants []*dto.ApiParticipant
+	for _, editor := range editors {
+		participants = append(participants, &dto.ApiParticipant{
+			Uuid: editor.uuid.String(),
+			Name: editor.name,
+		})
+	}
+
+	participantsMessage := &dto.ApiMessageTransport_ApiParticipantsMessage{
+		Participants: participants,
+	}
+
+	messageTransport := &dto.ApiMessageTransport{
+		Transport: &dto.ApiMessageTransport_Participants{
+			Participants: participantsMessage,
+		},
+	}
+
+	return messageTransport
+}
+
+func NewTransitionMessage(transition *text.Transition) *dto.ApiMessageTransport {
+	transitionMessage := &dto.ApiMessageTransport_ApiTextTransitionMessage{
+		Start: transition.Start,
+		End:   transition.End,
+		Text:  transition.Text,
+	}
+
+	messageTransport := &dto.ApiMessageTransport{
+		Transport: &dto.ApiMessageTransport_Transition{
+			Transition: transitionMessage,
+		},
+	}
+
+	return messageTransport
 }

@@ -27,6 +27,6 @@ func TestTextContainer(t *testing.T) {
 
 	expectedText := "Hello, Editor! How are you?"
 	if tc.GetText() != expectedText {
-		t.Errorf("Expected text %q, but got %q", expectedText, tc.GetText())
+		t.Errorf("Expected Text %q, but got %q", expectedText, tc.GetText())
 	}
 }

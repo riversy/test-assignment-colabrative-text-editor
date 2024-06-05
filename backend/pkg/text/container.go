@@ -6,13 +6,13 @@ import (
 )
 
 type Transition struct {
-	start int
-	end   int
-	text  string
+	Start int32
+	End   int32
+	Text  string
 }
 
-func NewTransition(start int, end int, text string) Transition {
-	return Transition{start: start, end: end, text: text}
+func NewTransition(start int32, end int32, text string) Transition {
+	return Transition{Start: start, End: end, Text: text}
 }
 
 type Container struct {
@@ -27,9 +27,9 @@ func (t *Container) applyTransition(transition Transition) {
 
 	var buffer bytes.Buffer
 
-	buffer.WriteString(t.text[:transition.start])
-	buffer.WriteString(transition.text)
-	buffer.WriteString(t.text[transition.end:])
+	buffer.WriteString(t.text[:transition.Start])
+	buffer.WriteString(transition.Text)
+	buffer.WriteString(t.text[transition.End:])
 
 	t.text = buffer.String()
 }
