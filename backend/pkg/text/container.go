@@ -2,6 +2,7 @@ package text
 
 import (
 	"bytes"
+	"log/slog"
 	"sync"
 )
 
@@ -24,6 +25,17 @@ type Container struct {
 func (t *Container) applyTransition(transition Transition) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	textLen := int32(len(t.text))
+	if transition.Start < 0 || transition.Start > textLen {
+		slog.Error("transition start out of range, skipping...")
+	}
+	if transition.End < 0 || transition.End > textLen {
+		slog.Error("transition end out of range, skipping...")
+	}
+	if transition.Start > transition.End {
+		slog.Error("transition start greater than end, skipping...")
+	}
 
 	var buffer bytes.Buffer
 
