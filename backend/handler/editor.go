@@ -48,7 +48,6 @@ func (e *Editor) Handle() {
 			e.SetName(transport.GetHandshake().Name)
 			e.pool.AddToPool <- e
 		case *dto.ApiMessageTransport_Transition:
-			slog.Info("text transition received from", "name", e.GetName())
 			textTransition := text.NewTransition(
 				transport.GetTransition().GetStart(),
 				transport.GetTransition().GetEnd(),
@@ -89,6 +88,9 @@ func (e *Editor) Close() {
 }
 
 func (e *Editor) sendMessage(message *dto.ApiMessageTransport) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	data, err := proto.Marshal(message)
 	if err != nil {
 		return err

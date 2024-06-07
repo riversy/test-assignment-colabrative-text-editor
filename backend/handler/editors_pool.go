@@ -63,7 +63,7 @@ func (p *EditorsPool) Handle() {
 		case _ = <-p.Handshake:
 			break
 		case editor := <-p.AddToPool:
-			p.sendInitialTransition(editor)
+			go p.sendInitialTransition(editor)
 			p.addEditor(editor)
 			p.broadcastEditors()
 		case editor := <-p.RemoveFromPool:
@@ -93,6 +93,9 @@ func (p *EditorsPool) deleteEditor(editor *Editor) {
 }
 
 func (p *EditorsPool) broadcastEditors() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	for _, editor := range p.editors {
 		err := editor.sendMessage(
 			NewParticipantsMessage(p.editors),
@@ -104,18 +107,26 @@ func (p *EditorsPool) broadcastEditors() {
 }
 
 func (p *EditorsPool) broadcastTransition(transport *TransitionTransport) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	wg := sync.WaitGroup{}
 	for _, editor := range p.editors {
 		if editor.uuid == transport.author.uuid {
 			continue
 		}
-
-		err := editor.sendMessage(
-			NewTransitionMessage(transport.transition),
-		)
-		if err != nil {
-			slog.Error("broadcast transition to editor error", "err", err, "name", editor.name)
-		}
+		wg.Add(1)
+		go func() {
+			err := editor.sendMessage(
+				NewTransitionMessage(transport.transition),
+			)
+			if err != nil {
+				slog.Error("broadcast transition to editor error", "err", err, "name", editor.name)
+			}
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 }
 
 func (p *EditorsPool) sendInitialTransition(editor *Editor) {
