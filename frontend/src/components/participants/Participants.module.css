@@ -1,3 +1,21 @@
 .participants {
+    display: flex;
+    min-height: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    flex-direction: row;
+    width: 100%;
+}
+
+.participant {
     display: block;
+    background-color: #d2d2d2;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+}
+
+.participant:not(:first-child) {
+    margin-left: 1rem;
 }
