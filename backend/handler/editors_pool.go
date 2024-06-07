@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -32,6 +33,13 @@ func NewEditorsPool() *EditorsPool {
 }
 
 func (p *EditorsPool) ServeWs(w http.ResponseWriter, r *http.Request) {
+	corsHeader := os.Getenv("HTTP_CORS")
+	if corsHeader == "" {
+		w.Header().Set("Access-Control-Allow-Origin", corsHeader)
+	}
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
 	wsConn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("websocket upgrader error:", err)
