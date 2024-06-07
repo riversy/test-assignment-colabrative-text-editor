@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gorilla/websocket"
+	"log/slog"
 	"net/http"
 	"os"
 )
@@ -13,7 +14,11 @@ var websocketUpgrader = websocket.Upgrader{
 		corsHeader := os.Getenv("HTTP_CORS")
 		if corsHeader == "" {
 			origin := r.Header.Get("Origin")
-			return origin == "http://localhost:5173"
+			ok := origin == corsHeader
+			if !ok {
+				slog.Error("rejecting request because of unexpected origin", "origin", origin)
+			}
+			return ok
 		} else {
 			return true
 		}

@@ -17,7 +17,7 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
     const origEditorValueRef = useRef<string>("");
     const dmpRef = useRef(new diff_match_patch());
 
-    const [isLoading, setIsLoading] = useState<Boolean>(true);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const transitionCallback = useCallback<TransitionCallback>((transition: ApiTransitionEvent): void => {
         setIsLoading(false);
