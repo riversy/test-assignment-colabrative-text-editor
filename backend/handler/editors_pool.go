@@ -98,7 +98,7 @@ func (p *EditorsPool) broadcastEditors() {
 			NewParticipantsMessage(p.editors),
 		)
 		if err != nil {
-			slog.Error("broadcast participants to editor error:", err, "name: ", editor.name)
+			slog.Error("broadcast participants to editor error:", "err", err, "name", editor.name)
 		}
 	}
 }
@@ -113,7 +113,7 @@ func (p *EditorsPool) broadcastTransition(transport *TransitionTransport) {
 			NewTransitionMessage(transport.transition),
 		)
 		if err != nil {
-			slog.Error("broadcast transition to editor error:", err, "name: ", editor.name)
+			slog.Error("broadcast transition to editor error", "err", err, "name", editor.name)
 		}
 	}
 }
@@ -124,7 +124,7 @@ func (p *EditorsPool) sendInitialTransition(editor *Editor) {
 
 	err := editor.sendMessage(NewTransitionMessage(&transition))
 	if err != nil {
-		slog.Error("send initial transition to editor error:", err, "name: ", editor.name)
+		slog.Error("send initial transition to editor error", "err", err, "name", editor.name)
 	}
 }
 

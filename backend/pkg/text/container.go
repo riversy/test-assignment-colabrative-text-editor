@@ -25,6 +25,11 @@ type Container struct {
 func (t *Container) applyTransition(transition Transition) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("recovered at applyTransition", "error", r)
+		}
+	}()
 
 	textLen := int32(len(t.text))
 	if transition.Start < 0 || transition.Start > textLen {

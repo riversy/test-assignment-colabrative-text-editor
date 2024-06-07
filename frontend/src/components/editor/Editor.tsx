@@ -4,9 +4,19 @@ import {EditorProps} from "./Editor.props";
 import cn from "classnames";
 import {ApiConnectionProvider} from "../../services/api.provider.ts";
 import {ApiTransitionEvent, TransitionCallback} from "../../services/api.ts";
+import {diff_match_patch} from 'diff-match-patch';
+
+const DIFF_EQUAL: number = 0;
+const DIFF_INSERT: number = 1;
+const DIFF_DELETE: number = -1;
+
+type TextDiff = [number, string];
 
 export function Editor({className, ...props}: EditorProps): JSX.Element {
     const editorRef = useRef<HTMLTextAreaElement>(null);
+    const origEditorValueRef = useRef<string>("");
+    const dmpRef = useRef(new diff_match_patch());
+
     const [isLoading, setIsLoading] = useState<Boolean>(true);
 
     const transitionCallback = useCallback<TransitionCallback>((transition: ApiTransitionEvent): void => {
@@ -28,7 +38,7 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
 
     const replaceTextAtPosition = (startPos: number, endPos: number, text: string): void => {
         const textarea = editorRef.current;
-        if (startPos <= endPos || !textarea || endPos > textarea.value.length) {
+        if (startPos > endPos || !textarea || endPos > textarea.value.length) {
             return;
         }
 
@@ -37,6 +47,7 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
         const after = value.substring(endPos, value.length);
 
         textarea.value = before + text + after;
+        origEditorValueRef.current = before + text + after;
 
         const newPos = startPos + text.length;
 
@@ -61,34 +72,59 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
         const after = value.substring(startPos, value.length);
 
         textarea.value = before + text + after;
+        origEditorValueRef.current = before + text + after;
 
         if (textarea.selectionStart >= startPos) {
             textarea.selectionStart = textarea.selectionStart + text.length;
             textarea.selectionEnd = textarea.selectionEnd + text.length;
         } else if (textarea.selectionStart <= startPos && textarea.selectionEnd < startPos) {
             textarea.selectionStart = textarea.selectionEnd = textarea.selectionStart + text.length;
-        } else {
-            // do nothing @todo: to remove comment
         }
     };
 
-    const keyDownHandler = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        console.log('Key pressed:', e.key);
+    const diffToTransitions = (diffs: TextDiff[]): ApiTransitionEvent[] => {
+        let transitions: ApiTransitionEvent[] = [];
+        let pointer = 0;
 
-        // Get the current textarea element
-        const textarea = e.currentTarget;
+        diffs.forEach((diff) => {
+            const [type, text] = diff;
+            let transition: ApiTransitionEvent;
+            switch (type) {
+                case DIFF_INSERT:
+                    transition = {
+                        start: pointer,
+                        end: pointer,
+                        text: text
+                    }
+                    transitions.push(transition);
+                    pointer += text.length;
+                    break;
+                case DIFF_DELETE:
+                    transition = {
+                        start: pointer,
+                        end: pointer + text.length,
+                        text: ``
+                    }
+                    transitions.push(transition);
+                    break;
+                case DIFF_EQUAL:
+                    pointer += text.length;
+            }
+        });
 
-        // Log the selection parameters
-        const selectionStart = textarea.selectionStart;
-        const selectionEnd = textarea.selectionEnd;
-
-        const apiConnection = ApiConnectionProvider();
-        apiConnection.SendTransition({start: selectionStart, end: selectionEnd, text: e.key});
-
+        return transitions;
     };
 
-    const changeHandler = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        console.log('Value changed:', e.currentTarget.value);
+    const inputHandler = (e: React.FormEvent<HTMLTextAreaElement>) => {
+        const textarea = e.currentTarget;
+        const value = textarea.value;
+        const origValue = origEditorValueRef.current;
+        const diffs = dmpRef.current.diff_main(origValue, value);
+
+        const apiConnection = ApiConnectionProvider();
+        diffToTransitions(diffs).forEach(transition => apiConnection.SendTransition(transition));
+
+        origEditorValueRef.current = value
     }
 
     return (
@@ -96,10 +132,9 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
             className={cn(styles.editor, className)}
             {...props}
             ref={editorRef}
-            onKeyDown={keyDownHandler}
-            onChange={changeHandler}
+            onInput={inputHandler}
             disabled={isLoading}
-            placeholder={isLoading ? "Loading...": ""}
+            placeholder={isLoading ? "Loading..." : ""}
         ></textarea>
     );
 }

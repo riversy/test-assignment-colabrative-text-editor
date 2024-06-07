@@ -32,7 +32,7 @@ export class ApiConnection {
     private readonly participantName: string;
     private transitionCallback?: TransitionCallback;
     private participantsCallback?: ParticipantsCallback;
-    private readonly wsConnection: WebSocket;
+    private wsConnection: WebSocket;
 
     constructor(participantName: string) {
         this.participantName = participantName;
@@ -43,7 +43,6 @@ export class ApiConnection {
 
     public SendTransition(transition: ApiTransitionEvent): void {
         if (this.wsConnection && this.wsConnection.readyState === WebSocket.OPEN) {
-
             const transitionMessage = ApiTextTransitionMessage.create({
                 start: transition.start,
                 end: transition.end,
@@ -54,11 +53,6 @@ export class ApiConnection {
                 transition: transitionMessage
             });
 
-            console.log({
-                start: transition.start,
-                end: transition.end,
-                text: transition.text,
-            });
             this.wsConnection.send(ApiMessageTransport.encode(transportMessage).finish());
         } else {
             console.error('WebSocket connection is not open');
@@ -124,6 +118,12 @@ export class ApiConnection {
 
         this.wsConnection.onclose = () => {
             console.log('Disconnected from server');
+            console.log('Reconnecting in 1s');
+
+            setTimeout(() => {
+                this.wsConnection = new WebSocket(WS_URI);
+                this.configureConnection();
+            }, 1000)
         };
 
         this.wsConnection.onerror = (error) => {

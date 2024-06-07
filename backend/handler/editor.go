@@ -82,7 +82,7 @@ func (e *Editor) Close() {
 	if e.conn != nil {
 		err := e.conn.Close()
 		if err != nil {
-			slog.Error("close active WS connection error:", err)
+			slog.Error("close active WS connection error:", "err", err)
 		}
 		e.conn = nil
 	}
