@@ -36,11 +36,32 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
         setIsLoading(true);
     }, []);
 
+    const adjustSelection = (textareaStartPos: number, textareaEndPos: number, startPos: number, endPos: number, text: string): [number, number] => {
+        if (textareaStartPos === textareaEndPos) {
+            if (startPos <= textareaStartPos && endPos <= textareaEndPos) {
+                if (startPos < textareaStartPos) {
+                    textareaStartPos += text.length;
+                    textareaEndPos += text.length;
+                }
+            }
+        }
+
+        if (startPos < textareaStartPos && textareaStartPos < endPos) {
+            textareaStartPos = endPos;
+            textareaEndPos = endPos;
+        }
+
+        return [textareaStartPos, textareaEndPos]
+    };
+
     const replaceTextAtPosition = (startPos: number, endPos: number, text: string): void => {
         const textarea = editorRef.current;
         if (startPos > endPos || !textarea || endPos > textarea.value.length) {
             return;
         }
+
+        const selectionStart = textarea.selectionStart;
+        const selectionEnd = textarea.selectionEnd;
 
         const value = textarea.value;
         const before = value.substring(0, startPos);
@@ -49,16 +70,7 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
         textarea.value = before + text + after;
         origEditorValueRef.current = before + text + after;
 
-        const newPos = startPos + text.length;
-
-        if (textarea.selectionStart >= startPos && textarea.selectionEnd <= endPos) {
-            textarea.selectionStart = textarea.selectionEnd = newPos;
-        } else if (textarea.selectionStart >= endPos) {
-            textarea.selectionStart = textarea.selectionStart - (endPos - startPos) + text.length;
-            textarea.selectionEnd = textarea.selectionEnd - (endPos - startPos) + text.length;
-        } else if (textarea.selectionEnd >= endPos) {
-            textarea.selectionEnd = textarea.selectionEnd - (endPos - startPos) + text.length;
-        }
+        [textarea.selectionStart, textarea.selectionEnd] = adjustSelection(selectionStart, selectionEnd, startPos, endPos, text)
     }
 
     const insertTextAtPosition = (startPos: number, text: string): void => {
@@ -67,6 +79,9 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
             return;
         }
 
+        const selectionStart = textarea.selectionStart;
+        const selectionEnd = textarea.selectionEnd;
+
         const value = textarea.value;
         const before = value.substring(0, startPos);
         const after = value.substring(startPos, value.length);
@@ -74,12 +89,7 @@ export function Editor({className, ...props}: EditorProps): JSX.Element {
         textarea.value = before + text + after;
         origEditorValueRef.current = before + text + after;
 
-        if (textarea.selectionStart >= startPos) {
-            textarea.selectionStart = textarea.selectionStart + text.length;
-            textarea.selectionEnd = textarea.selectionEnd + text.length;
-        } else if (textarea.selectionStart <= startPos && textarea.selectionEnd < startPos) {
-            textarea.selectionStart = textarea.selectionEnd = textarea.selectionStart + text.length;
-        }
+        [textarea.selectionStart, textarea.selectionEnd] = adjustSelection(selectionStart, selectionEnd, startPos, startPos, text)
     };
 
     const diffToTransitions = (diffs: TextDiff[]): ApiTransitionEvent[] => {

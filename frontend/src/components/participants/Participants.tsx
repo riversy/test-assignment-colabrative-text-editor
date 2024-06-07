@@ -14,8 +14,6 @@ export function Participants({className, ...props}: ParticipantProps): JSX.Eleme
 
     const participantsCallback = useCallback<ParticipantsCallback>((participantsEvent: ApiParticipantsEvent): void => {
         const participants = participantsEvent.participants;
-        console.log(participants);
-
         setParticipants(participants);
     }, []);
 
